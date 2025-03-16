@@ -69,9 +69,19 @@ export default function SchedulerPage() {
         setResults([]);
     };
 
-    const exportToPDF = () => {
+    const exportToPDF = async () => {
         const doc = new jsPDF();
         let yPos = 20;
+
+        const addChartToPDF = async (chartRef, y) => {
+            if (chartRef.current) {
+                const canvas = chartRef.current.canvas;
+                const imgData = canvas.toDataURL("image/png", 1.0);
+                doc.addImage(imgData, 'PNG', 10, y, 180, 100);
+                return y + 110;
+            }
+            return y;
+        };
 
         if (results.length > 0 && !showAllResults) {
             doc.text(`${selectedAlgorithm} Results`, 10, yPos);
@@ -84,8 +94,40 @@ export default function SchedulerPage() {
                 body: tableData,
                 startY: yPos
             });
+            yPos = doc.autoTable.previous.finalY + 10;
+
+            const chartId = `chart-${selectedAlgorithm}`;
+            chartRefs.current[chartId] = useRef();
+
+            const chartData = {
+                labels: results.map(p => `P${p.id}`),
+                datasets: [
+                    {
+                        label: "Completion Time",
+                        data: results.map(p => p.completionTime),
+                        backgroundColor: "#ff6384"
+                    },
+                    {
+                        label: "Burst Time",
+                        data: results.map(p => p.originalBurstTime),
+                        backgroundColor: "#36a2eb"
+                    }
+                ]
+            };
+            
+            yPos = await addChartToPDF(chartRefs.current[chartId], yPos);
+
+            return (
+                <div>
+                    <Chart 
+                        ref={chartRefs.current[chartId]}
+                        type="bar"
+                        data={chartData}
+                    />
+                </div>
+            );
         } else if (showAllResults && allResults) {
-            Object.keys(allResults).forEach(algorithm => {
+            for (const algorithm of Object.keys(allResults)) {
                 doc.text(`${algorithm} Results`, 10, yPos);
                 yPos += 10;
                 const tableData = allResults[algorithm].map(p => [
@@ -97,7 +139,38 @@ export default function SchedulerPage() {
                     startY: yPos
                 });
                 yPos = doc.autoTable.previous.finalY + 10;
-            });
+
+                const chartId = `chart-${algorithm}`;
+                chartRefs.current[chartId] = useRef();
+
+                const chartData = {
+                    labels: allResults[algorithm].map(p => `P${p.id}`),
+                    datasets: [
+                        {
+                            label: "Completion Time",
+                            data: allResults[algorithm].map(p => p.completionTime),
+                            backgroundColor: "#ff6384"
+                        },
+                        {
+                            label: "Burst Time",
+                            data: allResults[algorithm].map(p => p.originalBurstTime),
+                            backgroundColor: "#36a2eb"
+                        }
+                    ]
+                };
+
+                yPos = await addChartToPDF(chartRefs.current[chartId], yPos);
+
+                return (
+                    <div>
+                        <Chart 
+                            ref={chartRefs.current[chartId]}
+                            type="bar"
+                            data={chartData}
+                        />
+                    </div>
+                );
+            }
         }
         doc.save("scheduler_results.pdf");
     };
@@ -154,24 +227,7 @@ export default function SchedulerPage() {
                             ))}
                         </tbody>
                     </table>
-                    <Chart 
-                        type="bar"
-                        data={{
-                            labels: results.map(p => `P${p.id}`),
-                            datasets: [
-                                {
-                                    label: "Completion Time",
-                                    data: results.map(p => p.completionTime),
-                                    backgroundColor: "#ff6384"
-                                },
-                                {
-                                    label: "Burst Time",
-                                    data: results.map(p => p.originalBurstTime),
-                                    backgroundColor: "#36a2eb"
-                                }
-                            ]
-                        }}
-                    />
+                    {exportToPDF()}
                 </div>
             )}
 
@@ -185,40 +241,11 @@ export default function SchedulerPage() {
                                 <th>Burst Time</th>
                                 <th>Waiting Time</th>
                                 <th>Turnaround Time</th>
-                                <th>Completion Time</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {allResults[algorithm].map(p => (
-                                <tr key={p.id}>
-                                    <td>P{p.id}</td>
-                                    <td>{p.originalBurstTime}</td>
-                                    <td>{p.waitingTime}</td>
-                                    <td>{p.turnaroundTime}</td>
-                                    <td>{p.completionTime}</td>
-                                </tr>
-                            ))}
+                                <th>Completion</th>
+                            <tr>
+                        )){
                         </tbody>
                     </table>
-                    <Chart 
-                        type="bar"
-                        data={{
-                            labels: allResults[algorithm].map(p => `P${p.id}`),
-                            datasets: [
-                                {
-                                    label: "Completion Time",
-                                    data: allResults[algorithm].map(p => p.completionTime),
-                                    backgroundColor: "#ff6384"
-                                },
-                                {
-                                    label: "Burst Time",
-                                    data: allResults[algorithm].map(p => p.originalBurstTime),
-                                    backgroundColor: "#36a2eb"
-                                }
-                            ]
-                        }}
-                    />
+                    {exportToPDF()}
                 </div>
             ))}
-        </div>
-    );
