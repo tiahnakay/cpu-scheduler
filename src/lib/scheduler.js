@@ -1,13 +1,27 @@
 export function fifoScheduling(processes) {
-    let time = 0;
-    return processes.map(p => {
-        let startTime = Math.max(time, p.arrivalTime); // Ensure CPU waits if needed
-        p.completionTime = startTime + p.burstTime;
-        p.turnaroundTime = p.completionTime - p.arrivalTime;
-        p.waitingTime = p.turnaroundTime - p.burstTime; // FIXED: Using burstTime
-        time = p.completionTime;
-        return p;
-    });
+    // ... (your existing FCFS code)
+}
+
+export function sjfScheduling(processes) {
+    let time = 0, result = [];
+    let queue = [...processes].sort((a, b) => a.arrivalTime - b.arrivalTime); // Sort by arrival first
+
+    while (queue.length > 0) {
+        let availableProcesses = queue.filter(p => p.arrivalTime <= time);
+        if (availableProcesses.length === 0) {
+            time = queue[0].arrivalTime; // Skip to next available process
+            continue;
+        }
+        availableProcesses.sort((a, b) => a.burstTime - b.burstTime); // Pick shortest job
+        let process = availableProcesses.shift();
+        process.completionTime = time + process.burstTime;
+        process.turnaroundTime = process.completionTime - process.arrivalTime;
+        process.waitingTime = process.turnaroundTime - process.burstTime;
+        time = process.completionTime;
+        result.push(process);
+        queue = queue.filter(p => p !== process); // Remove from queue
+    }
+    return result;
 }
 
 // Example usage and test data
@@ -17,5 +31,8 @@ const processes = [
     { id: 3, arrivalTime: 4, burstTime: 1 }
 ];
 
-const result = fifoScheduling(processes);
-console.log(result);
+const fifoResult = fifoScheduling(processes);
+console.log("FIFO Result:", fifoResult);
+
+const sjfResult = sjfScheduling(processes);
+console.log("SJF Result:", sjfResult);
