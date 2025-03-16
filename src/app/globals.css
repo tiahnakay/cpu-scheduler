@@ -1,0 +1,140 @@
+@import "tailwindcss";
+
+/* ====== Root Variables & Dark Mode ====== */
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --primary-color: #007bff;
+  --primary-hover: #0056b3;
+  --table-header-light: #f4f4f4;
+  --table-header-dark: #333;
+  --border-color-light: #ddd;
+  --border-color-dark: #555;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+    --table-header-light: #333;
+    --table-header-dark: #222;
+    --border-color-light: #555;
+    --border-color-dark: #777;
+  }
+}
+
+/* ====== General Styles ====== */
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Inter", Arial, Helvetica, sans-serif;
+  transition: background 0.3s ease, color 0.3s ease;
+  line-height: 1.6;
+}
+
+/* ====== Table Styling ====== */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+th, td {
+  border: 1px solid var(--border-color-light);
+  padding: 12px;
+  text-align: center;
+}
+
+th {
+  background-color: var(--table-header-light);
+  font-weight: bold;
+}
+
+td {
+  background-color: var(--background);
+}
+
+@media (prefers-color-scheme: dark) {
+  th {
+    background-color: var(--table-header-dark);
+    color: #fff;
+  }
+  td {
+    border-color: var(--border-color-dark);
+    color: #ddd;
+  }
+}
+
+/* ====== Button Styling ====== */
+button {
+  padding: 10px 15px;
+  font-size: 16px;
+  font-weight: bold;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+button:hover {
+  background-color: var(--primary-hover);
+  transform: scale(1.05);
+}
+
+button:active {
+  transform: scale(1);
+}
+
+/* Disabled Button */
+button:disabled {
+  background-color: #888;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ====== Select Dropdown Styling ====== */
+select {
+  padding: 10px;
+  border: 1px solid var(--border-color-light);
+  border-radius: 6px;
+  font-size: 16px;
+  background: var(--background);
+  color: var(--foreground);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+select:hover {
+  border-color: var(--primary-color);
+}
+
+@media (prefers-color-scheme: dark) {
+  select {
+    border-color: var(--border-color-dark);
+  }
+}
+
+/* ====== Responsive Design Fixes ====== */
+@media (max-width: 768px) {
+  table {
+    font-size: 14px;
+  }
+
+  th, td {
+    padding: 8px;
+  }
+
+  button {
+    font-size: 14px;
+    padding: 8px 12px;
+  }
+
+  select {
+    font-size: 14px;
+  }
+}
