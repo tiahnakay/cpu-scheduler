@@ -21,13 +21,15 @@ export default function SchedulerPage() {
     const [selectedAlgorithm, setSelectedAlgorithm] = useState("FIFO");
     const [timeQuantum, setTimeQuantum] = useState(2); 
     const [showAllResults, setShowAllResults] = useState(false);
-    
-    // Chart Refs for individual algorithms
     const chartRefs = useRef({});
 
     useEffect(() => {
         setProcesses(generateProcesses(5));
     }, []);
+
+    useEffect(() => {
+        console.log("Updated results: ", results);
+    }, [results]);
 
     const runScheduler = () => {
         let clonedProcesses = processes.map(p => ({ ...p }));
@@ -71,19 +73,19 @@ export default function SchedulerPage() {
         setResults([]);
     };
 
+    const addChartToPDF = async (chartRef, doc, y) => {
+        if (chartRef?.current?.canvas) {
+            const canvas = chartRef.current.canvas;
+            const imgData = canvas.toDataURL("image/png", 1.0);
+            doc.addImage(imgData, 'PNG', 10, y, 180, 100);
+            return y + 110;
+        }
+        return y;
+    };
+
     const exportToPDF = async () => {
         const doc = new jsPDF();
         let yPos = 20;
-
-        const addChartToPDF = async (chartRef, y) => {
-            if (chartRef && chartRef.current) {
-                const canvas = chartRef.current.canvas;
-                const imgData = canvas.toDataURL("image/png", 1.0);
-                doc.addImage(imgData, 'PNG', 10, y, 180, 100);
-                return y + 110;
-            }
-            return y;
-        };
 
         if (results.length > 0 && !showAllResults) {
             doc.text(`${selectedAlgorithm} Results`, 10, yPos);
@@ -97,8 +99,7 @@ export default function SchedulerPage() {
                 startY: yPos
             });
             yPos = doc.autoTable.previous.finalY + 10;
-
-            yPos = await addChartToPDF(chartRefs.current[selectedAlgorithm], yPos);
+            yPos = await addChartToPDF(chartRefs.current[selectedAlgorithm], doc, yPos);
         } else if (showAllResults && allResults) {
             for (const algorithm of Object.keys(allResults)) {
                 doc.text(`${algorithm} Results`, 10, yPos);
@@ -112,8 +113,7 @@ export default function SchedulerPage() {
                     startY: yPos
                 });
                 yPos = doc.autoTable.previous.finalY + 10;
-
-                yPos = await addChartToPDF(chartRefs.current[algorithm], yPos);
+                yPos = await addChartToPDF(chartRefs.current[algorithm], doc, yPos);
             }
         }
         doc.save("scheduler_results.pdf");
@@ -122,58 +122,11 @@ export default function SchedulerPage() {
     return (
         <div className="scheduler-container">
             <h1>CPU Scheduling Simulator</h1>
-            
-            <div className="controls">
-                <label>Algorithm:</label>
-                <select value={selectedAlgorithm} onChange={(e) => setSelectedAlgorithm(e.target.value)}>
-                    <option>FIFO</option>
-                    <option>SJF</option>
-                    <option>Round Robin</option>
-                    <option>Priority</option>
-                    <option>MLFQ</option>
-                </select>
-                {selectedAlgorithm === "Round Robin" && (
-                    <input 
-                        type="number" 
-                        value={timeQuantum} 
-                        onChange={(e) => setTimeQuantum(Number(e.target.value))} 
-                        min="1" 
-                        placeholder="Time Quantum" 
-                    />
-                )}
-                <button onClick={runScheduler}>Run</button>
-                <button onClick={runAllSchedulers}>Run All</button>
-                <button onClick={exportToPDF}>Export to PDF</button>
-            </div>
-
+            <button onClick={exportToPDF}>Export to PDF</button>
             {results.length > 0 && !showAllResults && (
                 <div>
-                    <h2>{selectedAlgorithm} Results</h2>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Process</th>
-                                <th>Burst Time</th>
-                                <th>Waiting Time</th>
-                                <th>Turnaround Time</th>
-                                <th>Completion Time</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {results.map(p => (
-                                <tr key={p.id}>
-                                    <td>P{p.id}</td>
-                                    <td>{p.originalBurstTime}</td>
-                                    <td>{p.waitingTime}</td>
-                                    <td>{p.turnaroundTime}</td>
-                                    <td>{p.completionTime}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-
                     <Chart 
-                        ref={(el) => (chartRefs.current[selectedAlgorithm] = el)}
+                        ref={(el) => { if (el) chartRefs.current[selectedAlgorithm] = el; }}
                         type="bar"
                         data={{
                             labels: results.map(p => `P${p.id}`),
@@ -193,54 +146,6 @@ export default function SchedulerPage() {
                     />
                 </div>
             )}
-
-            {showAllResults && allResults && Object.keys(allResults).map((algorithm) => (
-                <div key={algorithm}>
-                    <h2>{algorithm} Results</h2>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Process</th>
-                                <th>Burst Time</th>
-                                <th>Waiting Time</th>
-                                <th>Turnaround Time</th>
-                                <th>Completion</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {allResults[algorithm].map(p => (
-                                <tr key={p.id}>
-                                    <td>P{p.id}</td>
-                                    <td>{p.originalBurstTime}</td>
-                                    <td>{p.waitingTime}</td>
-                                    <td>{p.turnaroundTime}</td>
-                                    <td>{p.completionTime}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-
-                    <Chart 
-                        ref={(el) => (chartRefs.current[algorithm] = el)}
-                        type="bar"
-                        data={{
-                            labels: allResults[algorithm].map(p => `P${p.id}`),
-                            datasets: [
-                                {
-                                    label: "Completion Time",
-                                    data: allResults[algorithm].map(p => p.completionTime),
-                                    backgroundColor: "#ff6384"
-                                },
-                                {
-                                    label: "Burst Time",
-                                    data: allResults[algorithm].map(p => p.originalBurstTime),
-                                    backgroundColor: "#36a2eb"
-                                }
-                            ]
-                        }}
-                    />
-                </div>
-            ))}
         </div>
     );
 }
