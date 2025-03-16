@@ -70,15 +70,19 @@ export default function SchedulerPage() {
     };
 
     const exportToPDF = async () => {
-        const doc = new jsPDF();
+        const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
         let yPos = 20;
 
         const addChartToPDF = async (chartId, y) => {
             const chartRef = chartRefs.current[chartId];
             if (chartRef && chartRef.canvas) {
                 const imgData = chartRef.canvas.toDataURL("image/png", 1.0);
-                doc.addImage(imgData, 'PNG', 10, y, 180, 100);
-                return y + 110;
+                if (y + 110 > 280) {
+                    doc.addPage();
+                    y = 20;
+                }
+                doc.addImage(imgData, 'PNG', 10, y, 180, 90);
+                return y + 100;
             }
             return y;
         };
@@ -95,6 +99,10 @@ export default function SchedulerPage() {
             yPos = await addChartToPDF(selectedAlgorithm, yPos);
         } else if (showAllResults && allResults) {
             for (const algorithm of Object.keys(allResults)) {
+                if (yPos + 50 > 280) {
+                    doc.addPage();
+                    yPos = 20;
+                }
                 doc.text(`${algorithm} Results`, 10, yPos);
                 yPos += 10;
                 doc.autoTable({
@@ -137,7 +145,7 @@ export default function SchedulerPage() {
             </div>
 
             {showAllResults && allResults && Object.keys(allResults).map((algorithm) => (
-                <div key={algorithm}>
+                <div key={algorithm} style={{ marginBottom: "50px" }}>
                     <h2>{algorithm} Results</h2>
                     <Chart 
                         ref={(ref) => chartRefs.current[algorithm] = ref}
