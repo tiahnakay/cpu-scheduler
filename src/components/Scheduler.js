@@ -89,16 +89,20 @@ export default function SchedulerPage() {
                 doc.autoTable({
                     head: [["Process", "Burst Time", "Waiting Time", "Turnaround Time", "Completion Time"]],
                     body: tableData,
-                    startY: yPos
+                    startY: yPos,
+                    margin: { horizontal: 20 }
                 });
 
                 yPos = doc.lastAutoTable.finalY + 20;
 
                 const canvas = chartRefs.current[algorithm].canvas;
                 const imgData = canvas.toDataURL("image/png");
-                doc.addImage(imgData, 'PNG', 20, yPos, 160, 100);
-                yPos += 110;
+                doc.addImage(imgData, 'PNG', 20, yPos, 180, 120);
+                yPos += 130;
+                doc.addPage();
+                yPos = 20;
             });
+            doc.deletePage(Object.keys(allResults).length +1);
         } else if (results.length > 0) {
             doc.text(selectedAlgorithm + " Results", 20, yPos);
             yPos += 10;
@@ -114,14 +118,15 @@ export default function SchedulerPage() {
             doc.autoTable({
                 head: [["Process", "Burst Time", "Waiting Time", "Turnaround Time", "Completion Time"]],
                 body: tableData,
-                startY: yPos
+                startY: yPos,
+                margin: { horizontal: 20 }
             });
 
             yPos = doc.lastAutoTable.finalY + 20;
 
             const canvas = chartRefs.current[selectedAlgorithm].canvas;
             const imgData = canvas.toDataURL("image/png");
-            doc.addImage(imgData, 'PNG', 20, yPos, 160, 100);
+            doc.addImage(imgData, 'PNG', 20, yPos, 180, 120);
         }
 
         doc.save("scheduler_results.pdf");
