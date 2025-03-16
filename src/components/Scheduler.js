@@ -1,12 +1,12 @@
 "use client"
 import { useState, useEffect, useRef } from "react";
-import { 
-    fifoScheduling, 
-    sjfScheduling, 
-    roundRobinScheduling, 
-    priorityScheduling, 
-    mlfqScheduling, 
-    generateProcesses 
+import {
+    fifoScheduling,
+    sjfScheduling,
+    roundRobinScheduling,
+    priorityScheduling,
+    mlfqScheduling,
+    generateProcesses
 } from "../lib/scheduler";
 import { Chart } from "react-chartjs-2";
 import jsPDF from "jspdf";
@@ -19,7 +19,7 @@ export default function SchedulerPage() {
     const [results, setResults] = useState([]);
     const [allResults, setAllResults] = useState(null);
     const [selectedAlgorithm, setSelectedAlgorithm] = useState("FIFO");
-    const [timeQuantum, setTimeQuantum] = useState(2); 
+    const [timeQuantum, setTimeQuantum] = useState(2);
     const [showAllResults, setShowAllResults] = useState(false);
     const chartRefs = useRef({});
 
@@ -32,22 +32,22 @@ export default function SchedulerPage() {
         let result = [];
 
         switch (selectedAlgorithm) {
-            case "FIFO": 
-                result = fifoScheduling(clonedProcesses); 
+            case "FIFO":
+                result = fifoScheduling(clonedProcesses);
                 break;
-            case "SJF": 
-                result = sjfScheduling(clonedProcesses); 
+            case "SJF":
+                result = sjfScheduling(clonedProcesses);
                 break;
-            case "Round Robin": 
-                result = roundRobinScheduling(clonedProcesses, timeQuantum); 
+            case "Round Robin":
+                result = roundRobinScheduling(clonedProcesses, timeQuantum);
                 break;
-            case "Priority": 
-                result = priorityScheduling(clonedProcesses); 
+            case "Priority":
+                result = priorityScheduling(clonedProcesses);
                 break;
-            case "MLFQ": 
-                result = mlfqScheduling(clonedProcesses, [2, 4, 8]); 
+            case "MLFQ":
+                result = mlfqScheduling(clonedProcesses, [2, 4, 8]);
                 break;
-            default: 
+            default:
                 result = fifoScheduling(clonedProcesses);
         }
 
@@ -58,10 +58,10 @@ export default function SchedulerPage() {
 
     const runAllSchedulers = () => {
         const results = {
-            "FIFO": fifoScheduling(processes.map(p => ({ ...p })) ),
-            "SJF": sjfScheduling(processes.map(p => ({ ...p })) ),
+            "FIFO": fifoScheduling(processes.map(p => ({ ...p }))),
+            "SJF": sjfScheduling(processes.map(p => ({ ...p }))),
             "Round Robin": roundRobinScheduling(processes.map(p => ({ ...p })), timeQuantum),
-            "Priority": priorityScheduling(processes.map(p => ({ ...p })) ),
+            "Priority": priorityScheduling(processes.map(p => ({ ...p }))),
             "MLFQ": mlfqScheduling(processes.map(p => ({ ...p })), [2, 4, 8])
         };
         setAllResults(results);
@@ -69,10 +69,68 @@ export default function SchedulerPage() {
         setResults([]);
     };
 
+    const exportToPDF = () => {
+        const doc = new jsPDF();
+        let yPos = 20;
+
+        if (showAllResults && allResults) {
+            Object.keys(allResults).forEach((algorithm) => {
+                doc.text(algorithm + " Results", 20, yPos);
+                yPos += 10;
+
+                const tableData = allResults[algorithm].map(p => [
+                    `P${p.id}`,
+                    p.originalBurstTime,
+                    p.waitingTime,
+                    p.turnaroundTime,
+                    p.completionTime
+                ]);
+
+                doc.autoTable({
+                    head: [["Process", "Burst Time", "Waiting Time", "Turnaround Time", "Completion Time"]],
+                    body: tableData,
+                    startY: yPos
+                });
+
+                yPos = doc.lastAutoTable.finalY + 20;
+
+                const canvas = chartRefs.current[algorithm].canvas;
+                const imgData = canvas.toDataURL("image/png");
+                doc.addImage(imgData, 'PNG', 20, yPos, 160, 100);
+                yPos += 110;
+            });
+        } else if (results.length > 0) {
+            doc.text(selectedAlgorithm + " Results", 20, yPos);
+            yPos += 10;
+
+            const tableData = results.map(p => [
+                `P${p.id}`,
+                p.originalBurstTime,
+                p.waitingTime,
+                p.turnaroundTime,
+                p.completionTime
+            ]);
+
+            doc.autoTable({
+                head: [["Process", "Burst Time", "Waiting Time", "Turnaround Time", "Completion Time"]],
+                body: tableData,
+                startY: yPos
+            });
+
+            yPos = doc.lastAutoTable.finalY + 20;
+
+            const canvas = chartRefs.current[selectedAlgorithm].canvas;
+            const imgData = canvas.toDataURL("image/png");
+            doc.addImage(imgData, 'PNG', 20, yPos, 160, 100);
+        }
+
+        doc.save("scheduler_results.pdf");
+    };
+
     return (
         <div className="scheduler-container">
             <h1>CPU Scheduling Simulator</h1>
-            
+
             <div className="controls">
                 <label>Algorithm:</label>
                 <select value={selectedAlgorithm} onChange={(e) => setSelectedAlgorithm(e.target.value)}>
@@ -83,16 +141,17 @@ export default function SchedulerPage() {
                     <option>MLFQ</option>
                 </select>
                 {selectedAlgorithm === "Round Robin" && (
-                    <input 
-                        type="number" 
-                        value={timeQuantum} 
-                        onChange={(e) => setTimeQuantum(Number(e.target.value))} 
-                        min="1" 
-                        placeholder="Time Quantum" 
+                    <input
+                        type="number"
+                        value={timeQuantum}
+                        onChange={(e) => setTimeQuantum(Number(e.target.value))}
+                        min="1"
+                        placeholder="Time Quantum"
                     />
                 )}
                 <button onClick={runScheduler}>Run</button>
                 <button onClick={runAllSchedulers}>Run All</button>
+                <button onClick={exportToPDF}>Export to PDF</button>
             </div>
 
             {results.length > 0 && !showAllResults && (
@@ -120,7 +179,7 @@ export default function SchedulerPage() {
                             ))}
                         </tbody>
                     </table>
-                    <Chart 
+                    <Chart
                         ref={(ref) => chartRefs.current[selectedAlgorithm] = ref}
                         type="bar"
                         data={{
@@ -159,7 +218,7 @@ export default function SchedulerPage() {
                             ))}
                         </tbody>
                     </table>
-                    <Chart 
+                    <Chart
                         ref={(ref) => chartRefs.current[algorithm] = ref}
                         type="bar"
                         data={{
