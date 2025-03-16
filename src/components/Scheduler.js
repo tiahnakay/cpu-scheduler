@@ -14,7 +14,7 @@ import "jspdf-autotable";
 import "chart.js/auto";
 import { motion } from "framer-motion";
 
-export default function SchedulerPage() {
+export default function SchedulerPage({ darkMode }) {
     const [processes, setProcesses] = useState([]);
     const [results, setResults] = useState([]);
     const [allResults, setAllResults] = useState(null);
@@ -58,184 +58,20 @@ export default function SchedulerPage() {
 
     const runAllSchedulers = () => {
         const results = {
-            "FIFO": fifoScheduling(processes.map(p => ({ ...p }))),
-            "SJF": sjfScheduling(processes.map(p => ({ ...p }))),
-            "Round Robin": roundRobinScheduling(processes.map(p => ({ ...p })), timeQuantum),
-            "Priority": priorityScheduling(processes.map(p => ({ ...p }))),
-            "MLFQ": mlfqScheduling(processes.map(p => ({ ...p })), [2, 4, 8])
+            "FIFO": fifoScheduling(processes.map(p => ({ ...p })));
+            "SJF": sjfScheduling(processes.map(p => ({ ...p })));
+            "Round Robin": roundRobinScheduling(processes.map(p => ({ ...p })), timeQuantum);
+            "Priority": priorityScheduling(processes.map(p => ({ ...p })));
+            "MLFQ": mlfqScheduling(processes.map(p => ({ ...p })), [2, 4, 8]);
         };
         setAllResults(results);
         setShowAllResults(true);
         setResults([]);
     };
 
-    const exportToPDF = () => {
-        const doc = new jsPDF();
-        let yPos = 20;
-
-        if (showAllResults && allResults) {
-            Object.keys(allResults).forEach((algorithm) => {
-                doc.text(algorithm + " Results", 20, yPos);
-                yPos += 10;
-
-                const tableData = allResults[algorithm].map(p => [
-                    `P${p.id}`,
-                    p.originalBurstTime,
-                    p.waitingTime,
-                    p.turnaroundTime,
-                    p.completionTime
-                ]);
-
-                doc.autoTable({
-                    head: [["Process", "Burst Time", "Waiting Time", "Turnaround Time", "Completion Time"]],
-                    body: tableData,
-                    startY: yPos,
-                    margin: { horizontal: 20 }
-                });
-
-                yPos = doc.lastAutoTable.finalY + 20;
-
-                const canvas = chartRefs.current[algorithm].canvas;
-                const imgData = canvas.toDataURL("image/png");
-                doc.addImage(imgData, 'PNG', 20, yPos, 180, 120);
-                yPos += 130;
-                doc.addPage();
-                yPos = 20;
-            });
-            doc.deletePage(Object.keys(allResults).length +1);
-        } else if (results.length > 0) {
-            doc.text(selectedAlgorithm + " Results", 20, yPos);
-            yPos += 10;
-
-            const tableData = results.map(p => [
-                `P${p.id}`,
-                p.originalBurstTime,
-                p.waitingTime,
-                p.turnaroundTime,
-                p.completionTime
-            ]);
-
-            doc.autoTable({
-                head: [["Process", "Burst Time", "Waiting Time", "Turnaround Time", "Completion Time"]],
-                body: tableData,
-                startY: yPos,
-                margin: { horizontal: 20 }
-            });
-
-            yPos = doc.lastAutoTable.finalY + 20;
-
-            const canvas = chartRefs.current[selectedAlgorithm].canvas;
-            const imgData = canvas.toDataURL("image/png");
-            doc.addImage(imgData, 'PNG', 20, yPos, 180, 120);
-        }
-
-        doc.save("scheduler_results.pdf");
-    };
-
     return (
-        <div className="scheduler-container">
-            <h1>CPU Scheduling Simulator</h1>
-
-            <div className="controls">
-                <label>Algorithm:</label>
-                <select value={selectedAlgorithm} onChange={(e) => setSelectedAlgorithm(e.target.value)}>
-                    <option>FIFO</option>
-                    <option>SJF</option>
-                    <option>Round Robin</option>
-                    <option>Priority</option>
-                    <option>MLFQ</option>
-                </select>
-                {selectedAlgorithm === "Round Robin" && (
-                    <input
-                        type="number"
-                        value={timeQuantum}
-                        onChange={(e) => setTimeQuantum(Number(e.target.value))}
-                        min="1"
-                        placeholder="Time Quantum"
-                    />
-                )}
-                <button onClick={runScheduler}>Run</button>
-                <button onClick={runAllSchedulers}>Run All</button>
-                <button onClick={exportToPDF}>Export to PDF</button>
-            </div>
-
-            {results.length > 0 && !showAllResults && (
-                <div>
-                    <h2>{selectedAlgorithm} Results</h2>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Process</th>
-                                <th>Burst Time</th>
-                                <th>Waiting Time</th>
-                                <th>Turnaround Time</th>
-                                <th>Completion Time</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {results.map(p => (
-                                <tr key={p.id}>
-                                    <td>P{p.id}</td>
-                                    <td>{p.originalBurstTime}</td>
-                                    <td>{p.waitingTime}</td>
-                                    <td>{p.turnaroundTime}</td>
-                                    <td>{p.completionTime}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    <Chart
-                        ref={(ref) => chartRefs.current[selectedAlgorithm] = ref}
-                        type="bar"
-                        data={{
-                            labels: results.map(p => `P${p.id}`),
-                            datasets: [
-                                { label: "Completion Time", data: results.map(p => p.completionTime), backgroundColor: "#ff6384" },
-                                { label: "Burst Time", data: results.map(p => p.originalBurstTime), backgroundColor: "#36a2eb" }
-                            ]
-                        }}
-                    />
-                </div>
-            )}
-
-            {showAllResults && allResults && Object.keys(allResults).map((algorithm) => (
-                <div key={algorithm} style={{ marginBottom: "50px" }}>
-                    <h2>{algorithm} Results</h2>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Process</th>
-                                <th>Burst Time</th>
-                                <th>Waiting Time</th>
-                                <th>Turnaround Time</th>
-                                <th>Completion Time</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {allResults[algorithm].map(p => (
-                                <tr key={p.id}>
-                                    <td>P{p.id}</td>
-                                    <td>{p.originalBurstTime}</td>
-                                    <td>{p.waitingTime}</td>
-                                    <td>{p.turnaroundTime}</td>
-                                    <td>{p.completionTime}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    <Chart
-                        ref={(ref) => chartRefs.current[algorithm] = ref}
-                        type="bar"
-                        data={{
-                            labels: allResults[algorithm].map(p => `P${p.id}`),
-                            datasets: [
-                                { label: "Completion Time", data: allResults[algorithm].map(p => p.completionTime), backgroundColor: "#ff6384" },
-                                { label: "Burst Time", data: allResults[algorithm].map(p => p.originalBurstTime), backgroundColor: "#36a2eb" }
-                            ]
-                        }}
-                    />
-                </div>
-            ))}
+        <div className="scheduler-container" style={{ backgroundColor: darkMode ? '#121212' : '#ffffff', color: darkMode ? '#ffffff' : '#000000', minHeight: '100vh', padding: '20px' }}>
+            <h1 style={{ color: darkMode ? '#bb86fc' : '#000000' }}>CPU Scheduling Simulator</h1>
         </div>
     );
 }
