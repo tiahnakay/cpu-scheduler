@@ -1,4 +1,4 @@
-"use client";
+"use client"
 import { useState, useEffect, useRef } from "react";
 import { 
     fifoScheduling, 
@@ -26,10 +26,6 @@ export default function SchedulerPage() {
     useEffect(() => {
         setProcesses(generateProcesses(5));
     }, []);
-
-    useEffect(() => {
-        console.log("Updated results: ", results);
-    }, [results]);
 
     const runScheduler = () => {
         let clonedProcesses = processes.map(p => ({ ...p }));
@@ -73,47 +69,41 @@ export default function SchedulerPage() {
         setResults([]);
     };
 
-    const addChartToPDF = async (chartRef, doc, y) => {
-        if (chartRef?.current?.canvas) {
-            const canvas = chartRef.current.canvas;
-            const imgData = canvas.toDataURL("image/png", 1.0);
-            doc.addImage(imgData, 'PNG', 10, y, 180, 100);
-            return y + 110;
-        }
-        return y;
-    };
-
     const exportToPDF = async () => {
         const doc = new jsPDF();
         let yPos = 20;
 
+        const addChartToPDF = async (chartId, y) => {
+            const chartRef = chartRefs.current[chartId];
+            if (chartRef && chartRef.canvas) {
+                const imgData = chartRef.canvas.toDataURL("image/png", 1.0);
+                doc.addImage(imgData, 'PNG', 10, y, 180, 100);
+                return y + 110;
+            }
+            return y;
+        };
+
         if (results.length > 0 && !showAllResults) {
             doc.text(`${selectedAlgorithm} Results`, 10, yPos);
             yPos += 10;
-            const tableData = results.map(p => [
-                `P${p.id}`, p.originalBurstTime, p.waitingTime, p.turnaroundTime, p.completionTime
-            ]);
             doc.autoTable({
                 head: [["Process", "Burst Time", "Waiting Time", "Turnaround Time", "Completion Time"]],
-                body: tableData,
+                body: results.map(p => [`P${p.id}`, p.originalBurstTime, p.waitingTime, p.turnaroundTime, p.completionTime]),
                 startY: yPos
             });
             yPos = doc.autoTable.previous.finalY + 10;
-            yPos = await addChartToPDF(chartRefs.current[selectedAlgorithm], doc, yPos);
+            yPos = await addChartToPDF(selectedAlgorithm, yPos);
         } else if (showAllResults && allResults) {
             for (const algorithm of Object.keys(allResults)) {
                 doc.text(`${algorithm} Results`, 10, yPos);
                 yPos += 10;
-                const tableData = allResults[algorithm].map(p => [
-                    `P${p.id}`, p.originalBurstTime, p.waitingTime, p.turnaroundTime, p.completionTime
-                ]);
                 doc.autoTable({
                     head: [["Process", "Burst Time", "Waiting Time", "Turnaround Time", "Completion Time"]],
-                    body: tableData,
+                    body: allResults[algorithm].map(p => [`P${p.id}`, p.originalBurstTime, p.waitingTime, p.turnaroundTime, p.completionTime]),
                     startY: yPos
                 });
                 yPos = doc.autoTable.previous.finalY + 10;
-                yPos = await addChartToPDF(chartRefs.current[algorithm], doc, yPos);
+                yPos = await addChartToPDF(algorithm, yPos);
             }
         }
         doc.save("scheduler_results.pdf");
@@ -122,30 +112,46 @@ export default function SchedulerPage() {
     return (
         <div className="scheduler-container">
             <h1>CPU Scheduling Simulator</h1>
-            <button onClick={exportToPDF}>Export to PDF</button>
-            {results.length > 0 && !showAllResults && (
-                <div>
+            
+            <div className="controls">
+                <label>Algorithm:</label>
+                <select value={selectedAlgorithm} onChange={(e) => setSelectedAlgorithm(e.target.value)}>
+                    <option>FIFO</option>
+                    <option>SJF</option>
+                    <option>Round Robin</option>
+                    <option>Priority</option>
+                    <option>MLFQ</option>
+                </select>
+                {selectedAlgorithm === "Round Robin" && (
+                    <input 
+                        type="number" 
+                        value={timeQuantum} 
+                        onChange={(e) => setTimeQuantum(Number(e.target.value))} 
+                        min="1" 
+                        placeholder="Time Quantum" 
+                    />
+                )}
+                <button onClick={runScheduler}>Run</button>
+                <button onClick={runAllSchedulers}>Run All</button>
+                <button onClick={exportToPDF}>Export to PDF</button>
+            </div>
+
+            {showAllResults && allResults && Object.keys(allResults).map((algorithm) => (
+                <div key={algorithm}>
+                    <h2>{algorithm} Results</h2>
                     <Chart 
-                        ref={(el) => { if (el) chartRefs.current[selectedAlgorithm] = el; }}
+                        ref={(ref) => chartRefs.current[algorithm] = ref}
                         type="bar"
                         data={{
-                            labels: results.map(p => `P${p.id}`),
+                            labels: allResults[algorithm].map(p => `P${p.id}`),
                             datasets: [
-                                {
-                                    label: "Completion Time",
-                                    data: results.map(p => p.completionTime),
-                                    backgroundColor: "#ff6384"
-                                },
-                                {
-                                    label: "Burst Time",
-                                    data: results.map(p => p.originalBurstTime),
-                                    backgroundColor: "#36a2eb"
-                                }
+                                { label: "Completion Time", data: allResults[algorithm].map(p => p.completionTime), backgroundColor: "#ff6384" },
+                                { label: "Burst Time", data: allResults[algorithm].map(p => p.originalBurstTime), backgroundColor: "#36a2eb" }
                             ]
                         }}
                     />
                 </div>
-            )}
+            ))}
         </div>
     );
 }
