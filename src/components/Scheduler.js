@@ -58,11 +58,11 @@ export default function SchedulerPage({ darkMode }) {
 
     const runAllSchedulers = () => {
         const results = {
-            "FIFO": fifoScheduling(processes.map(p => ({ ...p })));
-            "SJF": sjfScheduling(processes.map(p => ({ ...p })));
-            "Round Robin": roundRobinScheduling(processes.map(p => ({ ...p })), timeQuantum);
-            "Priority": priorityScheduling(processes.map(p => ({ ...p })));
-            "MLFQ": mlfqScheduling(processes.map(p => ({ ...p })), [2, 4, 8]);
+            "FIFO": fifoScheduling(processes.map(p => ({ ...p }))),
+            "SJF": sjfScheduling(processes.map(p => ({ ...p }))),
+            "Round Robin": roundRobinScheduling(processes.map(p => ({ ...p })), timeQuantum),
+            "Priority": priorityScheduling(processes.map(p => ({ ...p }))),
+            "MLFQ": mlfqScheduling(processes.map(p => ({ ...p })), [2, 4, 8])
         };
         setAllResults(results);
         setShowAllResults(true);
